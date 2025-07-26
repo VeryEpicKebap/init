@@ -1,14 +1,23 @@
+// xylen-init (0.2c)
+// written by VeryEpicKebap
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mount.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/reboot.h>
 #include <linux/reboot.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 
 void mount_fs(const char *src, const char *target, const char *fstype) {
     if (mount(src, target, fstype, 0, "") < 0)
@@ -28,7 +37,7 @@ void setup_mdev() {
     }
 }
 
-void spawn_sh(const char *path) {
+void spawn_shell(const char *path) {
     struct stat st;
     if (stat(path, &st) < 0) {
         fprintf(stderr, "no %s (%s)\n", path, strerror(errno));
@@ -38,8 +47,19 @@ void spawn_sh(const char *path) {
         fprintf(stderr, "not executable: %s\n", path);
         return;
     }
+
     pid_t pid = fork();
     if (pid == 0) {
+        int fd = open("/dev/tty1", O_RDWR);
+        if (fd >= 0) {
+            dup2(fd, STDIN_FILENO);
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            setsid();
+            ioctl(fd, TIOCSCTTY, 0);
+        } else {
+            perror("open /dev/tty1");
+        }
         execl(path, path, NULL);
         fprintf(stderr, "exec %s: %s\n", path, strerror(errno));
         exit(1);
@@ -53,20 +73,26 @@ void spawn_sh(const char *path) {
 }
 
 void sig_handler(int sig) {
-    printf("signal %d, poweroff...\n", sig);
+    printf("signal %d received, powering off...\n", sig);
     sync();
     reboot(RB_POWER_OFF);
 }
 
 int main(void) {
-    printf("xylen-init (0.2b)\n - Welcome! -");
+    printf("\033[xylen-init (0.2c)\nWelcome!\n");
     mount_fs("proc", "/proc", "proc");
     mount_fs("sysfs", "/sys", "sysfs");
     mount_fs("devtmpfs", "/dev", "devtmpfs");
     setup_mdev();
+
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
-    spawn_sh("/bin/xsh");
-    spawn_sh("/bin/sh");
-    while (1) pause();
+
+    while (1) {
+        spawn_shell("/bin/xsh");
+        spawn_shell("/bin/sh");
+        sleep(1);
+    }
+
+    return 0;
 }
