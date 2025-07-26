@@ -1,4 +1,4 @@
-// xylen-init (0.3a)
+// xylen-init (0.3b)
 // written by VeryEpicKebap
 
 
@@ -51,7 +51,7 @@ void spawn_shell(const char *path) {
     if (pid == 0) {
         int fd = -1;
         const char *tty_devices[] = {"/dev/tty1", "/dev/ttyS0", "/dev/console", NULL};
-        
+
         for (int i = 0; tty_devices[i]; i++) {
             fd = open(tty_devices[i], O_RDWR);
             if (fd >= 0) break;
@@ -81,7 +81,12 @@ void sig_handler(int sig) {
 }
 
 int main(void) {
-    printf("\x1b[36m [ xylen-init (0.2c) ] \x1b[0m \n\n\x1b[32m - Welcome! - \x1b[0m\n");
+    printf("\x1b[36m [ xylen-init (v0.3b) ] \x1b[0m \n\n\x1b[32mWelcome!\x1b[0m\n");
+
+    if (mount(NULL, "/", NULL, MS_REMOUNT, NULL) < 0) {
+        fprintf(stderr, "remount / rw: %s\n", strerror(errno));
+    }
+
     mount_fs("proc", "/proc", "proc");
     mount_fs("sysfs", "/sys", "sysfs");
     mount_fs("devtmpfs", "/dev", "devtmpfs");
