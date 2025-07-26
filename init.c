@@ -66,7 +66,7 @@ int main(void) {
     setup_mdev();
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
-    spawn_shell("/bin/xsh");
-    spawn_shell("/bin/sh");
+    spawn_sh("/bin/xsh");
+    spawn_sh("/bin/sh");
     while (1) pause();
 }
