@@ -1,4 +1,4 @@
-// xylen-init (0.2c)
+// xylen-init (0.3a)
 // written by VeryEpicKebap
 
 
@@ -20,10 +20,11 @@
 #include <termios.h>
 
 void mount_fs(const char *src, const char *target, const char *fstype) {
-    if (mount(src, target, fstype, 0, "") < 0)
-        fprintf(stderr, "mount %s on %s: %s\n", fstype, target, strerror(errno));
-    else
-        printf("mounted %s on %s\n", fstype, target);
+    if (mount(src, target, fstype, 0, "") < 0) {
+        if (errno != EBUSY) {
+            fprintf(stderr, "mount %s on %s: %s\n", fstype, target, strerror(errno));
+        }
+    }
 }
 
 void setup_mdev() {
@@ -32,8 +33,6 @@ void setup_mdev() {
         fprintf(fp, "/sbin/mdev\n");
         fclose(fp);
         system("/sbin/mdev -s");
-    } else {
-        perror("hotplug");
     }
 }
 
@@ -50,15 +49,14 @@ void spawn_shell(const char *path) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        int fd = open("/dev/tty1", O_RDWR);
+        int fd = open("/dev/console", O_RDWR);
+        if (fd < 0) fd = open("/dev/tty1", O_RDWR);
         if (fd >= 0) {
             dup2(fd, STDIN_FILENO);
             dup2(fd, STDOUT_FILENO);
             dup2(fd, STDERR_FILENO);
             setsid();
             ioctl(fd, TIOCSCTTY, 0);
-        } else {
-            perror("open /dev/tty1");
         }
         execl(path, path, NULL);
         fprintf(stderr, "exec %s: %s\n", path, strerror(errno));
@@ -66,14 +64,10 @@ void spawn_shell(const char *path) {
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
-        printf("exit %d\n", WEXITSTATUS(status));
-    } else {
-        perror("fork");
     }
 }
 
 void sig_handler(int sig) {
-    printf("signal %d received, powering off...\n", sig);
     sync();
     reboot(RB_POWER_OFF);
 }
