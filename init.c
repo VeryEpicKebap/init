@@ -49,15 +49,23 @@ void spawn_shell(const char *path) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        int fd = open("/dev/console", O_RDWR);
-        if (fd < 0) fd = open("/dev/tty1", O_RDWR);
+        int fd = -1;
+        const char *tty_devices[] = {"/dev/tty1", "/dev/ttyS0", "/dev/console", NULL};
+        
+        for (int i = 0; tty_devices[i]; i++) {
+            fd = open(tty_devices[i], O_RDWR);
+            if (fd >= 0) break;
+        }
+
         if (fd >= 0) {
             dup2(fd, STDIN_FILENO);
             dup2(fd, STDOUT_FILENO);
             dup2(fd, STDERR_FILENO);
             setsid();
             ioctl(fd, TIOCSCTTY, 0);
+            close(fd);
         }
+
         execl(path, path, NULL);
         fprintf(stderr, "exec %s: %s\n", path, strerror(errno));
         exit(1);
