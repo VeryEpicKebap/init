@@ -81,7 +81,7 @@ void sig_handler(int sig) {
 }
 
 int main(void) {
-    printf("\x1b[33m xylen-init (0.2c) \x1b[0m \n\n  \x1b[32m Welcome!\x1b[0m\n");
+    printf("\x1b[36m [ xylen-init (0.2c) ] \x1b[0m \n\n\x1b[32m - Welcome! - \x1b[0m\n");
     mount_fs("proc", "/proc", "proc");
     mount_fs("sysfs", "/sys", "sysfs");
     mount_fs("devtmpfs", "/dev", "devtmpfs");
